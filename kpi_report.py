@@ -29,7 +29,6 @@ class TestKpiReport:
                                info2=info2,
                                info3=info3
                                )
-
         with open('KPI_report_'+str(date.today())+'.html', 'a+') as f:
             f.write(html)
 
@@ -79,20 +78,14 @@ class TestKpiReport:
             contents['EMAIL']= input("Enter your email id")
             contents['JIRA_TOKEN']= input("Enter your JIRA token ")
             contents['TESTRAIL_PASSWORD']= input("Enter your Testrail password ")
-            contents['PREVIOUS_REGRESSION_START_DATE']= input("Enter previous regression start date ")
-            contents['PREVIOUS_REGRESSION_END_DATE']= input("Enter previous regression end date ")
-            contents['PREVIOUS_RELEASE_DATE']= input("Enter previous release date ")
             contents['PREVIOUS_RELEASE_VERSION']= input("Enter previous release version ")
             contents['CURRENT_RELEASE_VERSION']= input("Enter current release version ")
-            contents['CURRENT_REGRESSION_START_DATE']= input("Enter current regression start date ")
-            contents['CURRENT_REGRESSION_END_DATE']= input("Enter current regression end date ")
-            contents['CURRENT_RELEASE_DATE']= input("Enter current release date ")
             with open(os.path.join(os.path.dirname(__file__), "resources.yml"), 'w')  as resource_file:
                 yaml.dump(contents, resource_file, sort_keys=False)
         else:
             pass
 
-    def test_calculate_defects_severity_index(self, base_url, prj_key, jira_auth, previous_release_version, from_date, to_date, regression_start_date, regression_end_date):
+    def test_calculate_defects_severity_index(self, base_url, prj_key, jira_auth, previous_release_version):
         self.create_report()
         formula = "Escaped Defects Severity Index = (Total no. of defects (weighted density) reported in production / Total no. of defects  (weighted density) found during release) * 100"
         defect_coefficients = {'Critical': 10, 'High': 7, 'Medium': 5, 'Low': 3, 'Very Low': 1}
@@ -100,13 +93,13 @@ class TestKpiReport:
         captured_defects = []
         leaked_defect_weightage = 0
         captured_defect_weightage = 0
-        url = f'{base_url}rest/api/3/search'
+        url = f'{base_url}rest/api/3/search?maxResults=100'
 
         query1 = {
-            'jql': f'project = {prj_key} AND issuetype = Bug AND affectedVersion = {previous_release_version} AND created >= {regression_start_date} AND created <= {regression_end_date} ORDER BY created DESC'
+            'jql': f'project = {prj_key} AND issuetype = Bug AND affectedVersion = {previous_release_version} AND "Env[Dropdown]" in (Development, Staging) order by created DESC'
         }
         query2 = {
-            'jql': f'project = {prj_key} AND type = Bug AND affectedVersion = {previous_release_version} AND created >= {from_date} AND created <= {to_date} ORDER BY created DESC'
+            'jql': f'project = {prj_key} AND type = Bug AND affectedVersion = {previous_release_version} AND "Env[Dropdown]" in (Production) order by created DESC'
         }
         captured_issues = self.get_filtered_issues(url, query1, jira_auth)
         for issue in captured_issues['issues']:
@@ -173,12 +166,12 @@ class TestKpiReport:
         self.generate_report(metric_name=f"2. Requirements Coverage on Release Version {current_release_version}", formula=formula, info1=f'Total no. of FE and bug tickets included in {current_release_version}  = {len(Jira_FE_Tickets)}',
                              info2=f'Tickets not tested by QA = {tickets_not_tested}', info3=f'Requirements Coverage Percentage = {round(requirements_coverage)} %')
 
-    def test_calculate_valid_bug_percentage(self, base_url, prj_key, jira_auth, previous_release_date, current_release_date):
+    def test_calculate_valid_bug_percentage(self, base_url, prj_key, jira_auth, current_release_version):
         formula = "Valid bugs percentage = (No. of valid bugs / Total no. of bugs reported) * 100"
         total_issues = []
         valid_issues = []
-        url = f'{base_url}rest/api/3/search'
-        query = {'jql': f'project = {prj_key} AND type = Bug AND created >= {previous_release_date} AND created <= {current_release_date} ORDER BY created DESC'}
+        url = f'{base_url}rest/api/3/search?maxResults=100'
+        query = {'jql': f'project = {prj_key} AND issuetype = Bug AND affectedVersion = {current_release_version} AND "Env[Dropdown]" in (Development, Staging) order by created DESC'}
         captured_issues = self.get_filtered_issues(url, query, jira_auth)
         for issue in captured_issues['issues']:
             total_issues.append(issue['key'])
