@@ -27,3 +27,5 @@ Run pytest kpi_report.py -s
 Html report namedKPI_report_jinja.html will be generated or updated in the root folder
 
 Open the html report and click on the browser of your choice from the available options on the right side panel to see the final report
+
+This is just a sample and the script can be extended for different metrics for any bug management and test management tool.
